@@ -1,7 +1,40 @@
+const yargs = require('yargs/yargs');
 const Crawler = require("crawler");
 
-const numberOfPages = 25;
-const baseUrl = 'https://www.olx.ua/nedvizhimost/kvartiry/dolgosrochnaya-arenda-kvartir/dnepr/?search%5Bdescription%5D=1'
+const argv = yargs(process.argv.slice(2))
+    .option('baseUrl', {
+        alias: 'u',
+        description: 'Olx filter page url (without page number argument)',
+        type: 'string'
+    })
+    .option('numberOfPages', {
+        alias: 'n',
+        description: 'Number of page to search on',
+        type: 'number'
+    })
+    .option('includes', {
+        alias: 'i',
+        description: 'List of strings that must be included (at least one) on the page to appear in result',
+        type: 'array'
+    })
+    .option('excludes', {
+        alias: 'e',
+        description: 'List of strings that must NOT be included (any one) on the page to appear in result',
+        type: 'array'
+    })
+    .help()
+    .alias('help', 'h').argv;
+
+const baseUrl = argv.baseUrl;
+const numberOfPages = argv.numberOfPages;
+const includes = argv.includes || [];
+const excludes = argv.excludes || [];
+
+console.log(`Passed search parameters:
+    baseUrl=${baseUrl}
+    numberOfPages=${numberOfPages}
+    includes=${includes}
+    excludes=${excludes}`)
 
 function buildPageUrls(baseUrl, numberOfPages) {
     const pageUrls = [];
@@ -17,7 +50,7 @@ function collectItemUrls(baseUrl, numberOfPages) {
         const itemUrls = [];
 
         const crawler = new Crawler({
-            maxConnections: 10,
+            maxConnections: 3,
             callback: function (error, res, done) {
                 if (error) {
                     console.log(error);
@@ -42,12 +75,13 @@ function collectItemUrls(baseUrl, numberOfPages) {
     });
 }
 
-function filterItems(itemUrls, patters) {
+function filterItems(itemUrls, includePatters, excludePatterns) {
     return new Promise((resolve, reject) => {
         const filteredItemUrls = [];
 
         function isMatched(text) {
-            return patters.some(pattern => text.includes(pattern));
+            return includePatters.some(pattern => text.includes(pattern))
+                && !excludePatterns.some(pattern => text.includes(pattern));
         }
 
         const crawler = new Crawler({
@@ -75,8 +109,9 @@ function filterItems(itemUrls, patters) {
 }
 
 collectItemUrls(baseUrl, numberOfPages)
-    .then(itemUrls => filterItems(itemUrls, ["Можно с животными", "Можно с питомцами"])
+    .then(itemUrls => filterItems(itemUrls, includes, excludes)
         .then(filteredItemUrls => {
+            console.log("Found items:");
             filteredItemUrls.forEach(filteredItemUrl => {
                 console.log(filteredItemUrl);
             })
