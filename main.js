@@ -26,6 +26,11 @@ const argv = yargs(process.argv.slice(2))
         description: 'List of strings that must NOT be included (any one) on the page to appear in result',
         type: 'array'
     })
+    .option('maxMinutes', {
+        alias: 'mm',
+        description: 'Max number of minutes passed since item publication',
+        type: 'number'
+    })
     .help()
     .alias('help', 'h').argv;
 
@@ -33,12 +38,14 @@ const baseUrl = argv.baseUrl;
 const numberOfPages = argv.numberOfPages;
 const includes = argv.includes || [];
 const excludes = argv.excludes || [];
+const maxMinutes = argv.maxMinutes || -1;
 
 console.log(`Passed search parameters:
     baseUrl=${baseUrl}
     numberOfPages=${numberOfPages}
     includes=${includes}
-    excludes=${excludes}`)
+    excludes=${excludes}
+    maxMinutes=${maxMinutes}`);
 
 function buildPageUrls(baseUrl, numberOfPages) {
     const pageUrls = [];
@@ -131,18 +138,33 @@ function parseDate(dateString) {
 }
 
 function filterItems(itemUrls, includePatters, excludePatterns) {
-    function isMatched(text) {
+    function isBodyMatched(text) {
         return includePatters.some(pattern => text.includes(pattern))
             && !excludePatterns.some(pattern => text.includes(pattern));
     }
 
+    function isPublicationDateMatched(publicationDate) {
+        if (maxMinutes === -1) {
+            return true;
+        }
+
+        const currentDate = new Date();
+        return publicationDate > currentDate.setMinutes(currentDate.getMinutes() - maxMinutes);
+    }
+
     return crawl(itemUrls, response => {
         const $ = response.$;
+
         const body = $(ITEM_BODY_SELECTOR).text();
-        return !isMatched(body) ? [] : [{
-            "link": response.request.uri.href,
-            "date": parseDate($(ITEM_PUBLICATION_DATE_SELECTOR).text())
-        }]
+        const publicationDate = parseDate($(ITEM_PUBLICATION_DATE_SELECTOR).text())
+        if (isBodyMatched(body) && isPublicationDateMatched(publicationDate)) {
+            return [{
+                "link": response.request.uri.href,
+                "date": publicationDate
+            }]
+        }
+
+        return [];
     });
 }
 
