@@ -1,6 +1,9 @@
 const yargs = require('yargs/yargs');
 const Crawler = require("crawler");
 
+const ITEM_LINK_SELECTOR = ".detailsLink";
+const ITEM_BODY_SELECTOR = ".css-1wws9er";
+
 const argv = yargs(process.argv.slice(2))
     .option('baseUrl', {
         alias: 'u',
@@ -45,75 +48,54 @@ function buildPageUrls(baseUrl, numberOfPages) {
     return pageUrls;
 }
 
-function collectItemUrls(baseUrl, numberOfPages) {
+function crawl(urls, convertResponse) {
     return new Promise((resolve, reject) => {
-        const itemUrls = [];
+        const results = new Set();
 
         const crawler = new Crawler({
             maxConnections: 3,
-            callback: function (error, res, done) {
+            callback: function (error, response, done) {
                 if (error) {
                     console.log(error);
                 } else {
-                    const $ = res.$;
-                    $(".detailsLink").each((index, e) => {
-                        const href = $(e).attr('href')
-                        if(!itemUrls.includes(href)) {
-                            itemUrls.push(href);
-                        }
-                    });
+                    convertResponse(response).forEach(result => results.add(result));
                 }
                 done();
             }
         });
 
-        crawler.queue(buildPageUrls(baseUrl, numberOfPages));
+        crawler.queue(urls);
+        crawler.on('drain', () => resolve(Array.from(results)));
+    });
+}
 
-        crawler.on('drain', function () {
-            resolve(itemUrls);
+function collectItemUrls(baseUrl, numberOfPages) {
+    return crawl(buildPageUrls(baseUrl, numberOfPages), response => {
+        const itemUrls = []
+        const $ = response.$;
+        $(ITEM_LINK_SELECTOR).each((index, element) => {
+            itemUrls.push($(element).attr('href'));
         });
+
+        return itemUrls;
     });
 }
 
 function filterItems(itemUrls, includePatters, excludePatterns) {
-    return new Promise((resolve, reject) => {
-        const filteredItemUrls = [];
+    function isMatched(text) {
+        return includePatters.some(pattern => text.includes(pattern))
+            && !excludePatterns.some(pattern => text.includes(pattern));
+    }
 
-        function isMatched(text) {
-            return includePatters.some(pattern => text.includes(pattern))
-                && !excludePatterns.some(pattern => text.includes(pattern));
-        }
-
-        const crawler = new Crawler({
-            maxConnections: 3,
-            callback: function (error, res, done) {
-                if (error) {
-                    console.log(error);
-                } else {
-                    const $ = res.$;
-                    const body = $(".css-1wws9er").text();
-                    if (isMatched(body) && !filteredItemUrls.includes(res.request.uri.href)) {
-                        filteredItemUrls.push(res.request.uri.href)
-                    }
-                }
-                done();
-            }
-        });
-
-        crawler.queue(itemUrls);
-
-        crawler.on('drain', function () {
-            resolve(filteredItemUrls);
-        });
+    return crawl(itemUrls, response => {
+        const $ = response.$;
+        const body = $(ITEM_BODY_SELECTOR).text();
+        return isMatched(body) ? [response.request.uri.href] : [];
     });
 }
 
 collectItemUrls(baseUrl, numberOfPages)
     .then(itemUrls => filterItems(itemUrls, includes, excludes)
         .then(filteredItemUrls => {
-            console.log("Found items:");
-            filteredItemUrls.forEach(filteredItemUrl => {
-                console.log(filteredItemUrl);
-            })
+            console.log("Found items:" + JSON.stringify(filteredItemUrls));
         }))
-
