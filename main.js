@@ -31,6 +31,11 @@ const argv = yargs(process.argv.slice(2))
         description: 'Max number of minutes passed since item publication',
         type: 'number'
     })
+    .option('loopSeconds', {
+        alias: 'ls',
+        description: 'If the parameter is set, the script will be run in loop with timeout set to the parameter',
+        type: 'number'
+    })
     .help()
     .alias('help', 'h').argv;
 
@@ -39,18 +44,20 @@ const numberOfPages = argv.numberOfPages;
 const includes = argv.includes || [];
 const excludes = argv.excludes || [];
 const maxMinutes = argv.maxMinutes || -1;
+const loopSeconds = argv.loopSeconds || -1;
 
 console.log(`Passed search parameters:
     baseUrl=${baseUrl}
     numberOfPages=${numberOfPages}
     includes=${includes}
     excludes=${excludes}
-    maxMinutes=${maxMinutes}`);
+    maxMinutes=${maxMinutes}
+    loopSeconds=${loopSeconds}`);
 
 function buildPageUrls(baseUrl, numberOfPages) {
     const pageUrls = [];
     for (let i = 1; i <= numberOfPages; i++) {
-        pageUrls.push(baseUrl + "page=" + i)
+        pageUrls.push(baseUrl + "&page=" + i)
     }
 
     return pageUrls;
@@ -77,6 +84,8 @@ function crawl(urls, convertResponse) {
     });
 }
 
+let PREVIOUSLY_FOUND_ITEMS = [];
+
 function collectItemUrls(baseUrl, numberOfPages) {
     return crawl(buildPageUrls(baseUrl, numberOfPages), response => {
         const itemUrls = []
@@ -86,6 +95,10 @@ function collectItemUrls(baseUrl, numberOfPages) {
         });
 
         return itemUrls;
+    }).then(foundItems => {
+        let results = foundItems.filter(foundItem => !PREVIOUSLY_FOUND_ITEMS.includes(foundItem));
+        PREVIOUSLY_FOUND_ITEMS = foundItems;
+        return results;
     });
 }
 
@@ -122,7 +135,7 @@ function parseDate(dateString) {
             {str: "декабря", number: "12"}];
 
         months.forEach(month => {
-            if(dateString.includes(month.str)) {
+            if (dateString.includes(month.str)) {
                 dateString = `${month.number}/` + dateString.replace(` ${month.str} `, "/");
             }
         })
@@ -172,8 +185,28 @@ function sortItemsByDate(items) {
     return items.sort((a, b) => (a.date > b.date) ? -1 : 1);
 }
 
-collectItemUrls(baseUrl, numberOfPages)
-    .then(itemUrls => filterItems(itemUrls, includes, excludes)
-        .then(filteredItemUrls => {
-            console.log("Found items:" + JSON.stringify(sortItemsByDate(filteredItemUrls), null, "  "));
-        }))
+
+function run() {
+    collectItemUrls(baseUrl, numberOfPages)
+        .then(itemUrls => filterItems(itemUrls, includes, excludes)
+            .then(filteredItemUrls => {
+                console.log("--------------------------------------------------------------------------------")
+                if(filteredItemUrls.length > 0) {
+                    console.log("Found items:" + JSON.stringify(sortItemsByDate(filteredItemUrls), null, "  "));
+                } else {
+                    console.log("No new items found");
+                }
+                console.log("--------------------------------------------------------------------------------")
+            }))
+}
+
+function runInLoop() {
+    run();
+    setTimeout(runInLoop, loopSeconds * 1000)
+}
+
+if (loopSeconds === -1) {
+    run();
+} else {
+    runInLoop();
+}
