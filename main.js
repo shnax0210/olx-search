@@ -3,6 +3,7 @@ const Crawler = require("crawler");
 
 const ITEM_LINK_SELECTOR = ".detailsLink";
 const ITEM_BODY_SELECTOR = ".css-1wws9er";
+const ITEM_PUBLICATION_DATE_SELECTOR = ".css-19yf5ek";
 
 const argv = yargs(process.argv.slice(2))
     .option('baseUrl', {
@@ -81,6 +82,54 @@ function collectItemUrls(baseUrl, numberOfPages) {
     });
 }
 
+function parseDate(dateString) {
+    function parseHours(dateString) {
+        return dateString.split(" ")[2].split(":")[0]
+    }
+
+    function parseMinutes(dateString) {
+        return dateString.split(" ")[2].split(":")[1]
+    }
+
+    function createCurrentDateWithParsedTime(dateString) {
+        const date = new Date();
+        date.setHours(parseHours(dateString));
+        date.setMinutes(parseMinutes(dateString));
+        date.setSeconds(0);
+        date.setMilliseconds(0);
+        return date;
+    }
+
+    function prepareStringForDateParsing(dateString) {
+        const months = [{str: "января", number: "01"},
+            {str: "февраля", number: "02"},
+            {str: "марта", number: "03"},
+            {str: "апреля", number: "04"},
+            {str: "мая", number: "05"},
+            {str: "июня", number: "06"},
+            {str: "июля", number: "07"},
+            {str: "августа", number: "08"},
+            {str: "сентября", number: "09"},
+            {str: "октября", number: "10"},
+            {str: "ноября", number: "11"},
+            {str: "декабря", number: "12"}];
+
+        months.forEach(month => {
+            if(dateString.includes(month.str)) {
+                dateString = `${month.number}/` + dateString.replace(` ${month.str} `, "/");
+            }
+        })
+
+        return dateString.replace(" г.", "");
+    }
+
+    if (dateString.includes("Сегодня")) {
+        return createCurrentDateWithParsedTime(dateString);
+    }
+
+    return new Date(prepareStringForDateParsing((dateString)));
+}
+
 function filterItems(itemUrls, includePatters, excludePatterns) {
     function isMatched(text) {
         return includePatters.some(pattern => text.includes(pattern))
@@ -90,12 +139,19 @@ function filterItems(itemUrls, includePatters, excludePatterns) {
     return crawl(itemUrls, response => {
         const $ = response.$;
         const body = $(ITEM_BODY_SELECTOR).text();
-        return isMatched(body) ? [response.request.uri.href] : [];
+        return !isMatched(body) ? [] : [{
+            "link": response.request.uri.href,
+            "date": parseDate($(ITEM_PUBLICATION_DATE_SELECTOR).text())
+        }]
     });
+}
+
+function sortItemsByDate(items) {
+    return items.sort((a, b) => (a.date > b.date) ? -1 : 1);
 }
 
 collectItemUrls(baseUrl, numberOfPages)
     .then(itemUrls => filterItems(itemUrls, includes, excludes)
         .then(filteredItemUrls => {
-            console.log("Found items:" + JSON.stringify(filteredItemUrls));
+            console.log("Found items:" + JSON.stringify(sortItemsByDate(filteredItemUrls), null, "  "));
         }))
