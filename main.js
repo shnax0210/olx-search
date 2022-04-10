@@ -198,7 +198,7 @@ function collectItems(baseUrl, numberOfPages) {
 function filterItems(items, includePatters, excludePatterns) {
     items = filterOnlyNewItems(items);
 
-    if (includePatters.length === 0 && excludePatterns.length === 0) {
+    if ((includePatters.length === 0 && excludePatterns.length === 0) || items.length === 0) {
         items.forEach(item => ALREADY_WATCHED_ITEM_LINKS.add(item.link));
         return new Promise((resolve, reject) => resolve(items));
     }
