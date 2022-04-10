@@ -196,9 +196,9 @@ function collectItemUrls(baseUrl, numberOfPages) {
 }
 
 function filterItems(items, includePatters, excludePatterns) {
-    if(includePatters.length === 0 && excludePatterns.length === 0) {
+    if (includePatters.length === 0 && excludePatterns.length === 0) {
         items.forEach(item => ALREADY_WATCHED_ITEM_LINKS.add(item.link));
-        return items;
+        return new Promise((resolve, reject) => resolve(items));
     }
 
     function isBodyMatched(text) {
