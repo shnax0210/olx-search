@@ -56,7 +56,7 @@ const maxMinutes = argv.maxMinutes || -1;
 const loopSeconds = argv.loopSeconds || -1;
 const playSound = (typeof argv.playSound !== 'undefined') ? argv.playSound : (loopSeconds !== -1);
 
-console.log(`Passed search parameters:
+console.log(`Search parameters:
     baseUrl=${baseUrl}
     numberOfPages=${numberOfPages}
     includes=${includes}
@@ -185,7 +185,7 @@ function collectItems(baseUrl, numberOfPages) {
             const publicationDate = parseDate(dateString)
             if (isPublicationDateMatched(publicationDate)) {
                 items.push({
-                    "link": $(element).find(LIST_ITEM_LINK_SELECTOR).attr('href'),
+                    "link": $(element).find(LIST_ITEM_LINK_SELECTOR).attr('href').split("#")[0],
                     "date": publicationDate
                 });
             }
