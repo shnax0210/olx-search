@@ -177,21 +177,21 @@ function collectItems(baseUrl, numberOfPages) {
     }
 
     return crawl(buildPageUrls(baseUrl, numberOfPages), response => {
-        const itemUrls = []
+        const items = []
         const $ = response.$;
 
         $(LIST_ITEM_SELECTOR).each((index, element) => {
             const dateString = $($(element).find(LIST_ITEM_PUBLICATION_DATE_SELECTOR)[1]).text();
             const publicationDate = parseDate(dateString)
             if (isPublicationDateMatched(publicationDate)) {
-                itemUrls.push({
+                items.push({
                     "link": $(element).find(LIST_ITEM_LINK_SELECTOR).attr('href'),
                     "date": publicationDate
                 });
             }
         });
 
-        return itemUrls;
+        return items;
     });
 }
 
