@@ -131,7 +131,7 @@ function parseDate(dateString) {
             {str: "сен", number: 8},
             {str: "окт", number: 9},
             {str: "ноя", number: 10},
-            {str: "декя", number: 11}];
+            {str: "дек", number: 11}];
 
         let date = null;
         months.forEach(month => {
