@@ -17,7 +17,7 @@ const argv = yargs(process.argv.slice(2))
     })
     .option('numberOfPages', {
         alias: 'n',
-        description: 'Number of page to search on',
+        description: 'Number of pages to search on',
         type: 'number'
     })
     .option('includes', {
