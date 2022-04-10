@@ -166,7 +166,7 @@ function filterOnlyNewItems(items) {
     return items.filter(foundItem => !ALREADY_WATCHED_ITEM_LINKS.has(foundItem.link));
 }
 
-function collectItemUrls(baseUrl, numberOfPages) {
+function collectItems(baseUrl, numberOfPages) {
     function isPublicationDateMatched(publicationDate) {
         if (maxMinutes === -1) {
             return true;
@@ -225,7 +225,7 @@ function sortItemsByDate(items) {
 
 
 function run() {
-    collectItemUrls(baseUrl, numberOfPages)
+    collectItems(baseUrl, numberOfPages)
         .then(items => filterItems(items, includes, excludes)
             .then(filteredItem => {
                 console.log("--------------------------------------------------------------------------------")
