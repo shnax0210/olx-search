@@ -7,7 +7,7 @@ const LIST_ITEM_LINK_SELECTOR = ".detailsLink";
 const LIST_ITEM_PUBLICATION_DATE_SELECTOR = ".lheight16 span";
 const ITEM_BODY_SELECTOR = ".css-1wws9er";
 
-const ALREADY_FOUND_ITEM_LINKS = new Set();
+const ALREADY_WATCHED_ITEM_LINKS = new Set();
 
 const argv = yargs(process.argv.slice(2))
     .option('baseUrl', {
@@ -162,10 +162,8 @@ function parseDate(dateString) {
     return new Date(parseDate((dateString)));
 }
 
-function filterOnlyNewItems(foundItems) {
-    let results = foundItems.filter(foundItem => !ALREADY_FOUND_ITEM_LINKS.has(foundItem.link));
-    foundItems.forEach(item => ALREADY_FOUND_ITEM_LINKS.add(item.link));
-    return results;
+function filterOnlyNewItems(items) {
+    return items.filter(foundItem => !ALREADY_WATCHED_ITEM_LINKS.has(foundItem.link));
 }
 
 function collectItemUrls(baseUrl, numberOfPages) {
@@ -199,6 +197,7 @@ function collectItemUrls(baseUrl, numberOfPages) {
 
 function filterItems(items, includePatters, excludePatterns) {
     if(includePatters.length === 0 && excludePatterns.length === 0) {
+        items.forEach(item => ALREADY_WATCHED_ITEM_LINKS.add(item.link));
         return items;
     }
 
@@ -208,6 +207,7 @@ function filterItems(items, includePatters, excludePatterns) {
     }
 
     return crawl(items.map(item => item.link), response => {
+        ALREADY_WATCHED_ITEM_LINKS.add(response.request.uri.href)
         const $ = response.$;
 
         const body = $(ITEM_BODY_SELECTOR).text();
