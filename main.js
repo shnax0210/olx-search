@@ -7,6 +7,8 @@ const LIST_ITEM_LINK_SELECTOR = ".detailsLink";
 const LIST_ITEM_PUBLICATION_DATE_SELECTOR = ".lheight16 span";
 const ITEM_BODY_SELECTOR = ".css-1wws9er";
 
+const ALREADY_FOUND_ITEM_LINKS = new Set();
+
 const argv = yargs(process.argv.slice(2))
     .option('baseUrl', {
         alias: 'u',
@@ -160,11 +162,9 @@ function parseDate(dateString) {
     return new Date(parseDate((dateString)));
 }
 
-let PREVIOUSLY_FOUND_ITEM_LINKS = new Set();
-
 function filterOnlyNewItems(foundItems) {
-    let results = foundItems.filter(foundItem => !PREVIOUSLY_FOUND_ITEM_LINKS.has(foundItem.link));
-    foundItems.forEach(item => PREVIOUSLY_FOUND_ITEM_LINKS.add(item.link));
+    let results = foundItems.filter(foundItem => !ALREADY_FOUND_ITEM_LINKS.has(foundItem.link));
+    foundItems.forEach(item => ALREADY_FOUND_ITEM_LINKS.add(item.link));
     return results;
 }
 
