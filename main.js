@@ -38,6 +38,11 @@ const argv = yargs(process.argv.slice(2))
         description: 'If the parameter is set, the script will be run in loop with timeout set to the parameter',
         type: 'number'
     })
+    .option('playSound', {
+        alias: 'ps',
+        description: 'If true sound will be played when new items found',
+        type: 'boolean'
+    })
     .help()
     .alias('help', 'h').argv;
 
@@ -47,6 +52,7 @@ const includes = argv.includes || [];
 const excludes = argv.excludes || [];
 const maxMinutes = argv.maxMinutes || -1;
 const loopSeconds = argv.loopSeconds || -1;
+const playSound = (typeof argv.playSound !== 'undefined') ? argv.playSound : (loopSeconds !== -1);
 
 console.log(`Passed search parameters:
     baseUrl=${baseUrl}
@@ -54,7 +60,8 @@ console.log(`Passed search parameters:
     includes=${includes}
     excludes=${excludes}
     maxMinutes=${maxMinutes}
-    loopSeconds=${loopSeconds}`);
+    loopSeconds=${loopSeconds}
+    playSound=${playSound}`);
 
 function buildPageUrls(baseUrl, numberOfPages) {
     const pageUrls = [];
@@ -153,7 +160,7 @@ function parseDate(dateString) {
     return new Date(parseDate((dateString)));
 }
 
-let PREVIOUSLY_FOUND_ITEMS = [];
+let PREVIOUSLY_FOUND_ITEM_LINKS = [];
 
 function collectItemUrls(baseUrl, numberOfPages) {
     function isPublicationDateMatched(publicationDate) {
@@ -182,13 +189,17 @@ function collectItemUrls(baseUrl, numberOfPages) {
 
         return itemUrls;
     }).then(foundItems => {
-        let results = foundItems.filter(foundItem => !PREVIOUSLY_FOUND_ITEMS.includes(foundItem));
-        PREVIOUSLY_FOUND_ITEMS = foundItems;
+        let results = foundItems.filter(foundItem => !PREVIOUSLY_FOUND_ITEM_LINKS.includes(foundItem.link));
+        PREVIOUSLY_FOUND_ITEM_LINKS = foundItems.map(item => item.link);
         return results;
     });
 }
 
 function filterItems(items, includePatters, excludePatterns) {
+    if(includePatters.length === 0 && excludePatterns.length === 0) {
+        return items;
+    }
+
     function isBodyMatched(text) {
         return includePatters.some(pattern => text.includes(pattern))
             && !excludePatterns.some(pattern => text.includes(pattern));
@@ -218,7 +229,9 @@ function run() {
                 console.log("--------------------------------------------------------------------------------")
                 if (filteredItem.length > 0) {
                     console.log("Found items:" + JSON.stringify(sortItemsByDate(filteredItem), null, "  "));
-                    sound.play("sound/found-new-items.mp3");
+                    if(playSound) {
+                        sound.play("sound/found-new-items.mp3");
+                    }
                 } else {
                     console.log("No new items found");
                 }
