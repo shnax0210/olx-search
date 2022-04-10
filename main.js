@@ -160,7 +160,13 @@ function parseDate(dateString) {
     return new Date(parseDate((dateString)));
 }
 
-let PREVIOUSLY_FOUND_ITEM_LINKS = [];
+let PREVIOUSLY_FOUND_ITEM_LINKS = new Set();
+
+function filterOnlyNewItems(foundItems) {
+    let results = foundItems.filter(foundItem => !PREVIOUSLY_FOUND_ITEM_LINKS.has(foundItem.link));
+    foundItems.forEach(item => PREVIOUSLY_FOUND_ITEM_LINKS.add(item.link));
+    return results;
+}
 
 function collectItemUrls(baseUrl, numberOfPages) {
     function isPublicationDateMatched(publicationDate) {
@@ -188,11 +194,7 @@ function collectItemUrls(baseUrl, numberOfPages) {
         });
 
         return itemUrls;
-    }).then(foundItems => {
-        let results = foundItems.filter(foundItem => !PREVIOUSLY_FOUND_ITEM_LINKS.includes(foundItem.link));
-        PREVIOUSLY_FOUND_ITEM_LINKS = foundItems.map(item => item.link);
-        return results;
-    });
+    }).then(foundItems => filterOnlyNewItems(foundItems));
 }
 
 function filterItems(items, includePatters, excludePatterns) {
