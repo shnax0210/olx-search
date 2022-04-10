@@ -1,5 +1,6 @@
 const yargs = require('yargs/yargs');
 const Crawler = require("crawler");
+const sound = require("sound-play");
 
 const LIST_ITEM_SELECTOR = ".offer"
 const LIST_ITEM_LINK_SELECTOR = ".detailsLink";
@@ -217,6 +218,7 @@ function run() {
                 console.log("--------------------------------------------------------------------------------")
                 if (filteredItem.length > 0) {
                     console.log("Found items:" + JSON.stringify(sortItemsByDate(filteredItem), null, "  "));
+                    sound.play("sound/found-new-items.mp3");
                 } else {
                     console.log("No new items found");
                 }
