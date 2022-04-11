@@ -186,6 +186,7 @@ function collectItems(baseUrl, numberOfPages) {
             if (isPublicationDateMatched(publicationDate)) {
                 items.push({
                     "link": $(element).find(LIST_ITEM_LINK_SELECTOR).attr('href').split("#")[0],
+                    "rawDate": dateString,
                     "date": publicationDate
                 });
             }
