@@ -233,10 +233,10 @@ function sortItemsByDate(items) {
 }
 
 
-function processResults(filteredItem) {
+function processResults(resultItems) {
     console.log("--------------------------------------------------------------------------------")
-    if (filteredItem.length > 0) {
-        console.log("Found items:" + JSON.stringify(sortItemsByDate(filteredItem), null, "  "));
+    if (resultItems.length > 0) {
+        console.log("Found items:" + JSON.stringify(sortItemsByDate(resultItems), null, "  "));
         if (playSound) {
             sound.play("sound/found-new-items.mp3");
         }
