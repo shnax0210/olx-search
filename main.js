@@ -162,34 +162,18 @@ function parseDate(dateString) {
     return new Date(parseDate((dateString)));
 }
 
-function filterOnlyNewItems(items) {
-    return items.filter(foundItem => !ALREADY_WATCHED_ITEM_LINKS.has(foundItem.link));
-}
-
 function collectItems(baseUrl, numberOfPages) {
-    function isPublicationDateMatched(publicationDate) {
-        if (maxMinutes === -1) {
-            return true;
-        }
-
-        const currentDate = new Date();
-        return publicationDate > currentDate.setMinutes(currentDate.getMinutes() - maxMinutes);
-    }
-
     return crawl(buildPageUrls(baseUrl, numberOfPages), response => {
         const items = []
         const $ = response.$;
 
         $(LIST_ITEM_SELECTOR).each((index, element) => {
             const dateString = $($(element).find(LIST_ITEM_PUBLICATION_DATE_SELECTOR)[1]).text();
-            const publicationDate = parseDate(dateString)
-            if (isPublicationDateMatched(publicationDate)) {
-                items.push({
-                    "link": $(element).find(LIST_ITEM_LINK_SELECTOR).attr('href').split("#")[0],
-                    "rawDate": dateString,
-                    "date": publicationDate
-                });
-            }
+            items.push({
+                "link": $(element).find(LIST_ITEM_LINK_SELECTOR).attr('href').split("#")[0],
+                "rawDate": dateString,
+                "date": parseDate(dateString)
+            });
         });
 
         return items;
@@ -197,6 +181,43 @@ function collectItems(baseUrl, numberOfPages) {
 }
 
 function filterItems(items, includePatters, excludePatterns) {
+    function filterItemsByPublicationDate(items) {
+        function isPublicationDateMatched(publicationDate) {
+            if (maxMinutes === -1) {
+                return true;
+            }
+
+            const currentDate = new Date();
+            return publicationDate > currentDate.setMinutes(currentDate.getMinutes() - maxMinutes);
+        }
+
+        return items.filter(item => isPublicationDateMatched(item.date));
+    }
+
+    function filterOnlyNewItems(items) {
+        return items.filter(item => !ALREADY_WATCHED_ITEM_LINKS.has(item.link));
+    }
+
+    function filterItemsByBodyContent() {
+        function isBodyMatched(text) {
+            return includePatters.some(pattern => text.includes(pattern))
+                && !excludePatterns.some(pattern => text.includes(pattern));
+        }
+
+        return crawl(items.map(item => item.link), response => {
+            ALREADY_WATCHED_ITEM_LINKS.add(response.request.uri.href)
+            const $ = response.$;
+
+            const body = $(ITEM_BODY_SELECTOR).text();
+            if (isBodyMatched(body)) {
+                return items.filter(item => item.link === response.request.uri.href);
+            }
+
+            return [];
+        });
+    }
+
+    items = filterItemsByPublicationDate(items);
     items = filterOnlyNewItems(items);
 
     if ((includePatters.length === 0 && excludePatterns.length === 0) || items.length === 0) {
@@ -204,22 +225,7 @@ function filterItems(items, includePatters, excludePatterns) {
         return new Promise((resolve, reject) => resolve(items));
     }
 
-    function isBodyMatched(text) {
-        return includePatters.some(pattern => text.includes(pattern))
-            && !excludePatterns.some(pattern => text.includes(pattern));
-    }
-
-    return crawl(items.map(item => item.link), response => {
-        ALREADY_WATCHED_ITEM_LINKS.add(response.request.uri.href)
-        const $ = response.$;
-
-        const body = $(ITEM_BODY_SELECTOR).text();
-        if (isBodyMatched(body)) {
-            return items.filter(item => item.link === response.request.uri.href);
-        }
-
-        return [];
-    });
+    return filterItemsByBodyContent();
 }
 
 function sortItemsByDate(items) {
@@ -227,21 +233,23 @@ function sortItemsByDate(items) {
 }
 
 
+function processResults(filteredItem) {
+    console.log("--------------------------------------------------------------------------------")
+    if (filteredItem.length > 0) {
+        console.log("Found items:" + JSON.stringify(sortItemsByDate(filteredItem), null, "  "));
+        if (playSound) {
+            sound.play("sound/found-new-items.mp3");
+        }
+    } else {
+        console.log("No new items found");
+    }
+    console.log("--------------------------------------------------------------------------------")
+}
+
 function run() {
     collectItems(baseUrl, numberOfPages)
         .then(items => filterItems(items, includes, excludes)
-            .then(filteredItem => {
-                console.log("--------------------------------------------------------------------------------")
-                if (filteredItem.length > 0) {
-                    console.log("Found items:" + JSON.stringify(sortItemsByDate(filteredItem), null, "  "));
-                    if(playSound) {
-                        sound.play("sound/found-new-items.mp3");
-                    }
-                } else {
-                    console.log("No new items found");
-                }
-                console.log("--------------------------------------------------------------------------------")
-            }))
+            .then(filteredItem => processResults(filteredItem)));
 }
 
 function runInLoop() {
