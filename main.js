@@ -198,7 +198,12 @@ function filterItems(items, includePatters, excludePatterns) {
         return items.filter(item => !ALREADY_WATCHED_ITEM_LINKS.has(item.link));
     }
 
-    function filterItemsByBodyContent() {
+    function filterItemsByBodyContent(items, includePatters, excludePatterns) {
+        if ((includePatters.length === 0 && excludePatterns.length === 0) || items.length === 0) {
+            items.forEach(item => ALREADY_WATCHED_ITEM_LINKS.add(item.link));
+            return new Promise((resolve, reject) => resolve(items));
+        }
+
         function isBodyMatched(text) {
             return includePatters.some(pattern => text.includes(pattern))
                 && !excludePatterns.some(pattern => text.includes(pattern));
@@ -220,12 +225,7 @@ function filterItems(items, includePatters, excludePatterns) {
     items = filterItemsByPublicationDate(items);
     items = filterOnlyNewItems(items);
 
-    if ((includePatters.length === 0 && excludePatterns.length === 0) || items.length === 0) {
-        items.forEach(item => ALREADY_WATCHED_ITEM_LINKS.add(item.link));
-        return new Promise((resolve, reject) => resolve(items));
-    }
-
-    return filterItemsByBodyContent();
+    return filterItemsByBodyContent(items, includePatters, excludePatterns);
 }
 
 function sortItemsByDate(items) {
