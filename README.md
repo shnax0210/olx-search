@@ -1,7 +1,9 @@
 # Search items by text on olx
 
 Allows filtering olx items by checking strings that it must include and strings that it must NOT include.
+
 Allows filtering items by publication date.
+
 Allows running the script in loop to check only new items (ones new items appear sound is played to notify user).
 
 ## Before usage:
@@ -34,8 +36,8 @@ node main.js --baseUrl "https://www.olx.ua/nedvizhimost/kvartiry/dolgosrochnaya-
              --numberOfPages 1 \
              --includes "живот" "питом" \
              --excludes "Без животных" "без животных" "Без питомцев" "без питомцев" "С животными не берем" \
-             --maxMinutes 40 \
-             --loopSeconds 60
+             --maxMinutes 60 \
+             --loopSeconds 90
 ```
 
 ### Search items published later than 60 minutes ago in loop each 45 seconds, if found print them and play sound (without check on include, exclude strings):
