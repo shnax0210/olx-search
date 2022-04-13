@@ -188,13 +188,17 @@ function filterItems(items, maxMinutes, includes, excludes) {
         return items.filter(item => isPublicationDateMatched(item.date));
     }
 
-    function filterOnlyNewItems(items) {
+    function filterUnwatchedItems(items) {
         return items.filter(item => !ALREADY_WATCHED_ITEM_LINKS.has(item.link));
+    }
+
+    function markItemsAsWatched(items) {
+        items.forEach(item => ALREADY_WATCHED_ITEM_LINKS.add(item.link))
+        return items;
     }
 
     function filterItemsByBodyContent(items) {
         if ((includes.length === 0 && excludes.length === 0) || items.length === 0) {
-            items.forEach(item => ALREADY_WATCHED_ITEM_LINKS.add(item.link));
             return new Promise((resolve, reject) => resolve(items));
         }
 
@@ -204,7 +208,6 @@ function filterItems(items, maxMinutes, includes, excludes) {
         }
 
         return crawl(items.map(item => item.link), response => {
-            ALREADY_WATCHED_ITEM_LINKS.add(response.request.uri.href)
             const $ = response.$;
 
             const body = $(ITEM_BODY_SELECTOR).text();
@@ -217,9 +220,9 @@ function filterItems(items, maxMinutes, includes, excludes) {
     }
 
     items = filterItemsByPublicationDate(items);
-    items = filterOnlyNewItems(items);
+    items = filterUnwatchedItems(items);
 
-    return filterItemsByBodyContent(items);
+    return filterItemsByBodyContent(items).then(items => markItemsAsWatched(items));
 }
 
 function processResults(resultItems, playSound) {
