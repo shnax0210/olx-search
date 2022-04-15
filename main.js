@@ -203,8 +203,8 @@ function filterItems(items, maxMinutes, includes, excludes) {
         }
 
         function isBodyMatched(text) {
-            return includes.some(pattern => text.includes(pattern))
-                && !excludes.some(pattern => text.includes(pattern));
+            return (includes.length === 0 || includes.some(pattern => text.includes(pattern)))
+                && (excludes.length === 0 || !excludes.some(pattern => text.includes(pattern)));
         }
 
         return crawl(items.map(item => item.link), response => {
