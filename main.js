@@ -2,9 +2,9 @@ const yargs = require('yargs/yargs');
 const Crawler = require("crawler");
 const sound = require("sound-play");
 
-const LIST_ITEM_SELECTOR = ".offer"
-const LIST_ITEM_LINK_SELECTOR = ".detailsLink";
-const LIST_ITEM_PUBLICATION_DATE_SELECTOR = ".lheight16 span";
+const LIST_ITEM_SELECTOR = "div[data-cy=l-card]"
+const LIST_ITEM_LINK_SELECTOR = "a";
+const LIST_ITEM_PUBLICATION_DATE_SELECTOR = "p[data-testid=location-date]";
 const ITEM_BODY_SELECTOR = ".css-1wws9er";
 
 const ALREADY_WATCHED_ITEM_LINKS = new Set();
@@ -92,11 +92,11 @@ function collectItems(baseUrl, numberOfPages) {
 
     function parseDate(dateString) {
         function parseHours(dateString) {
-            return dateString.split(" ")[1].split(":")[0]
+            return dateString.split(" ")[2].split(":")[0]
         }
 
         function parseMinutes(dateString) {
-            return dateString.split(" ")[1].split(":")[1]
+            return dateString.split(" ")[2].split(":")[1]
         }
 
         function createCurrentDateWithParsedTime(dateString) {
@@ -162,9 +162,9 @@ function collectItems(baseUrl, numberOfPages) {
         const $ = response.$;
 
         $(LIST_ITEM_SELECTOR).each((index, element) => {
-            const dateString = $($(element).find(LIST_ITEM_PUBLICATION_DATE_SELECTOR)[1]).text();
+            const dateString = $($(element).find(LIST_ITEM_PUBLICATION_DATE_SELECTOR)[0]).text().split(" - ")[1]
             items.push({
-                "link": $(element).find(LIST_ITEM_LINK_SELECTOR).attr('href').split("#")[0],
+                "link": "https://www.olx.ua" + $(element).find(LIST_ITEM_LINK_SELECTOR).attr('href').split("#")[0],
                 "rawDate": dateString,
                 "date": parseDate(dateString)
             });
