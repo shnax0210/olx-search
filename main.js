@@ -100,11 +100,11 @@ function collectItems(baseUrl, numberOfPages) {
         }
 
         function createCurrentDateWithParsedTime(dateString) {
-            const date = new Date();
-            date.setHours(parseHours(dateString));
-            date.setMinutes(parseMinutes(dateString));
-            date.setSeconds(0);
-            date.setMilliseconds(0);
+            const date = getCurrentUTCDate();
+            date.setUTCHours(parseHours(dateString));
+            date.setUTCMinutes(parseMinutes(dateString));
+            date.setUTCSeconds(0);
+            date.setUTCMilliseconds(0);
             return date;
         }
 
@@ -131,11 +131,11 @@ function collectItems(baseUrl, numberOfPages) {
             let date = null;
             months.forEach(month => {
                 if (dateString.includes(month.str)) {
-                    date = new Date();
-                    date.setMonth(month.number);
-                    date.setDate(Number(dateString.split(" ")[0]))
-                    date.setSeconds(0);
-                    date.setMilliseconds(0);
+                    date = getCurrentUTCDate();
+                    date.setUTCMonth(month.number);
+                    date.setUTCDate(Number(dateString.split(" ")[0]))
+                    date.setUTCSeconds(0);
+                    date.setUTCMilliseconds(0);
                 }
             })
 
@@ -174,6 +174,10 @@ function collectItems(baseUrl, numberOfPages) {
     });
 }
 
+function getCurrentUTCDate() {
+    return new Date(Date.parse((new Date()).toUTCString()));
+}
+
 function filterItems(items, maxMinutes, includes, excludes) {
     function filterItemsByPublicationDate(items) {
         function isPublicationDateMatched(publicationDate) {
@@ -181,7 +185,7 @@ function filterItems(items, maxMinutes, includes, excludes) {
                 return true;
             }
 
-            const currentDate = new Date();
+            const currentDate = getCurrentUTCDate();
             return publicationDate > currentDate.setMinutes(currentDate.getMinutes() - maxMinutes);
         }
 
